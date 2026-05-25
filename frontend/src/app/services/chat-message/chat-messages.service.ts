@@ -13,7 +13,7 @@ export class ChatMessagesService {
   constructor(private http: HttpClient) {}
 
   getMessages(chatName: string) {
-    return this.http.get<IMessage[]>(`http://localhost:3000/api/chats/${encodeURIComponent(chatName)}/messages`)
+    return this.http.get<IMessage[]>(`/api/chats/${encodeURIComponent(chatName)}/messages`)
       .pipe(
         tap(msgs => {
           this.messages = msgs;

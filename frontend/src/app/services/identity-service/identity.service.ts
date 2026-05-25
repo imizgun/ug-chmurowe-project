@@ -14,10 +14,10 @@ export class IdentityService {
   constructor(private http: HttpClient) { }
 
   signUpUser(data: ISignUpUser) : Observable<ISimpleAnswer> {
-    return this.http.post<ISimpleAnswer>("http://localhost:5013/api/users", data);
+    return this.http.post<ISimpleAnswer>("/api/users", data);
   }
 
   logInUser(data: ILoginUser) : Observable<IUser> {
-    return this.http.post<IUser>("http://localhost:5013/api/users/auth", data);
+    return this.http.post<IUser>("/api/users/auth", data);
   }
 }

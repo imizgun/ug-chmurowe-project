@@ -27,8 +27,11 @@ async fn main() {
         rooms: Arc::new(Mutex::new(HashMap::new())),
     };
 
+    let allowed_origin = std::env::var("ALLOWED_ORIGIN")
+        .unwrap_or_else(|_| "http://localhost:4200".to_string());
+    
     let cors = CorsLayer::new()
-        .allow_origin("http://localhost:4200".parse::<HeaderValue>().unwrap())
+        .allow_origin(allowed_origin.parse::<HeaderValue>().unwrap())
         .allow_methods([Method::GET, Method::POST])
         .allow_headers(tower_http::cors::Any);
 

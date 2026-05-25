@@ -12,7 +12,7 @@ export class ChatConnectionService {
   private closed = false;
   private reconnectAttempt = 0;
   private readonly reconnectDelays = [0, 1000, 2000, 5000];
-  private readonly WS_BASE = 'ws://localhost:3000/api/chats/connect';
+  private readonly WS_BASE = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/api/chats/connect`;
 
   constructor(private router: Router, private chatMessages: ChatMessagesService) {}
 

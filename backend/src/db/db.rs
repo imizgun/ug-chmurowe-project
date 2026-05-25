@@ -4,9 +4,23 @@ use crate::contracts::income_message::IncomeMessage;
 use crate::core::chat::Chat;
 use crate::core::message::Message;
 
+fn build_database_url() -> String {
+    if let Ok(url) = std::env::var("DATABASE_URL") {
+        return url;
+    }
+    let user = std::env::var("POSTGRES_USER").expect("POSTGRES_USER must be set");
+    let db   = std::env::var("POSTGRES_DB").expect("POSTGRES_DB must be set");
+    let host = std::env::var("POSTGRES_HOST").unwrap_or_else(|_| "localhost".to_string());
+    let port = std::env::var("POSTGRES_PORT").unwrap_or_else(|_| "5432".to_string());
+    let password = std::fs::read_to_string("/run/secrets/db_password")
+        .map(|s| s.trim().to_string())
+        .or_else(|_| std::env::var("POSTGRES_PASSWORD"))
+        .expect("db_password secret or POSTGRES_PASSWORD must be set");
+    format!("postgres://{}:{}@{}:{}/{}", user, password, host, port, db)
+}
+
 pub async fn create_db_pool() -> PgPool {
-    let database_url = std::env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be set");
+    let database_url = build_database_url();
 
     let pool = PgPool::connect(&database_url).await.unwrap();
 
