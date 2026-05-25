@@ -1,0 +1,13 @@
+.layout {
+  height: 100%;
+  background-color: aliceblue;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  .content {
+    height: 100%;
+    display: flex;
+    align-items: center;
+  }
+}

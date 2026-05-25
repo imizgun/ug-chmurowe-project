@@ -1,0 +1,12 @@
+<div class="sign-up">
+  <div class="content">
+    <div class="title">
+      Log in
+    </div>
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit($event)" class="form">
+      <input formControlName="name" placeholder="Your name" />
+      <div class="error">{{getError()}}</div>
+      <button type="submit">Start chatting</button>
+    </form>
+  </div>
+</div>

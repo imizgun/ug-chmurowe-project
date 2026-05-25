@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@100..900&family=Manrope:wght@200..800&family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+:root {
+  font-size: 16px;
+  font-family: Poppins, sans-serifn, serif;
+
+  body, html {
+    margin: 0;
+    width: 100vw;
+    height: 100vh;
+
+    h1 {
+      margin: 0;
+    }
+
+    .sign-up {
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      .content {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 2rem;
+        border: 1px #878c8b solid;
+        border-radius: 12px;
+        background-color: #f0f6f5;
+
+        .title {
+          font-size: 2em;
+          margin-bottom: 20px;
+        }
+
+        .form {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          gap: 15px;
+
+          .error {
+            color: #e84d78;
+            min-width: 20px;
+          }
+        }
+      }
+    }
+  }
+  input {
+    padding: 7px 20px;
+    border-radius: 12px;
+    border: 1px solid gray;
+    font-size: 1.2em;
+  }
+
+  button {
+    padding: 10px 20px;
+    border-radius: 12px;
+    background-color: #9ebff4;
+    border: 1px solid gray;
+    font-size: 1.2em;
+    transition: all ease-in-out 0.3s;
+
+    &:hover {
+      background-color: #6096ed;
+      cursor: pointer;
+    }
+  }
+}/* You can add global styles to this file, and also import other style files */

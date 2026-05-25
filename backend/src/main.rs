@@ -10,8 +10,9 @@ use axum::{
     routing::get,
     Router,
 };
-use axum::http::StatusCode;
+use axum::http::{HeaderValue, Method, StatusCode};
 use axum::routing::post;
+use tower_http::cors::CorsLayer;
 use crate::app_state::AppState;
 
 #[tokio::main]
@@ -26,11 +27,19 @@ async fn main() {
         rooms: Arc::new(Mutex::new(HashMap::new())),
     };
 
+    let cors = CorsLayer::new()
+        .allow_origin("http://localhost:4200".parse::<HeaderValue>().unwrap())
+        .allow_methods([Method::GET, Method::POST])
+        .allow_headers(tower_http::cors::Any);
+
     let app = Router::new()
         .route("/health", get(health_check_handler))
         .nest("/api/chats", Router::new()
             .route("/", post(handlers::create_chat))
-            .route("/connect", get(handlers::connect_to_chat)))
+            .route("/connect", get(handlers::connect_to_chat))
+            .route("/{name}/messages", get(handlers::get_messages))
+        )
+        .layer(cors)
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();

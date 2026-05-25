@@ -1,0 +1,12 @@
+<div class="sign-up">
+  <div class="content">
+    <div class="title">
+      Join Chat
+    </div>
+    <form [formGroup]="chatEnterForm" (ngSubmit)="onSubmit($event)" class="form">
+      <input formControlName="chatName" placeholder="Chat name" />
+      <div class="error">{{getError()}}</div>
+      <button type="submit">Join chat</button>
+    </form>
+  </div>
+</div>

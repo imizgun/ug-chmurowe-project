@@ -1,0 +1,20 @@
+.pop-up {
+  position: absolute;
+  padding: 15px;
+  border-radius: 12px;
+  background-color: #f3f3f3;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  pointer-events: none; }
+  .pop-up.active {
+    opacity: 1;
+    pointer-events: all; }
+  .pop-up .tools {
+    display: flex;
+    flex-direction: column; }
+    .pop-up .tools .tool {
+      transition: all 0.3s ease-in-out; }
+      .pop-up .tools .tool:hover {
+        background-color: #e8e8e8; }
+
+/*# sourceMappingURL=edit-pop-up.component.css.map */

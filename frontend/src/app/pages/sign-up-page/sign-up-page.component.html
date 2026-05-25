@@ -1,0 +1,20 @@
+<div class="sign-up">
+  <div class="content">
+    <div class="title">
+      Sign Up
+    </div>
+    <form [formGroup]="signUpForm" (ngSubmit)="onSubmit($event)" class="form">
+      <input formControlName="name" placeholder="Name" />
+      <div class="error">{{getErrorByKey("name")}}</div>
+      <input formControlName="password" placeholder="Password" type="password"/>
+      <div class="error">{{getErrorByKey("password")}}</div>
+      <input formControlName="repeatPassword" placeholder="Repeat password" type="password"/>
+      <div class="error">{{getErrorByKey("repeatPassword")}}</div>
+      <button type="submit">Sign up for chatting</button>
+    </form>
+    <div *ngIf="isResponse" [ngStyle]="{'color': responseObj.isError ? 'red': 'green'}">
+      {{responseObj.responseText}}
+    </div>
+    <p>Already have an account? Go to <a [replaceUrl]="true" [routerLink]="['/log_in']">Log in</a></p>
+  </div>
+</div>

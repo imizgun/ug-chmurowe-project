@@ -1,0 +1,17 @@
+<div class="message" [ngStyle]="{'justify-content': isLeft ? 'flex-start' : 'flex-end'}">
+  <div class="content-wrap" [ngStyle]="{'align-items': isLeft ? 'flex-start' : 'flex-end'}">
+    <div class="author">
+      {{author}}
+    </div>
+    <div class="content" [ngStyle]="{'border-radius': isLeft ? '10px 10px 10px 0' : '10px 10px 0 10px'}">
+      <div class="messageText">
+        {{content}}
+      </div>
+      <div class="bottom">
+        <div class="sentAt">
+          {{sentAt}}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

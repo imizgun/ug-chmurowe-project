@@ -1,71 +1,41 @@
-use axum::extract::{Query, State, WebSocketUpgrade};
+pub mod error;
+
+use axum::extract::{Path, Query, State, WebSocketUpgrade};
 use axum::extract::ws::{WebSocket};
 use axum::extract::ws;
 use axum::http::StatusCode;
 use axum::Json;
 use axum::response::IntoResponse;
 use futures::{SinkExt, StreamExt};
-use sqlx::PgPool;
 use tokio::sync::broadcast;
 use crate::app_state::AppState;
 use crate::contracts::connect_to_chat_query::ConnectToChatQuery;
 use crate::contracts::create_chat_request::CreateChatRequest;
 use crate::contracts::create_chat_response::CreateChatResponse;
 use crate::contracts::income_message::IncomeMessage;
-use crate::core::chat::Chat;
 use crate::core::message::Message;
+use crate::db::db::{chat_exists_by_name, create_chat_inner, create_message, get_chat_by_name, get_chat_messages};
+use crate::handlers::error::AppError;
 
 #[axum::debug_handler]
 pub async fn create_chat(
     app_state: State<AppState>,
-    body: Json<CreateChatRequest>) -> (StatusCode, Json<CreateChatResponse>) {
+    body: Json<CreateChatRequest>,
+) -> Result<(StatusCode, Json<CreateChatResponse>), AppError> {
+    let new_chat = create_chat_inner(&app_state.db_pool, body.0).await?;
 
-    let new_chat = create_chat_inner(&app_state.db_pool, body.0).await;
-
-    (StatusCode::CREATED, Json(CreateChatResponse {
+    Ok((StatusCode::CREATED, Json(CreateChatResponse {
         id: new_chat.id,
-    }))
+    })))
 }
 
-async fn create_chat_inner(
-    pool: &PgPool,
-    body: CreateChatRequest
-) -> Chat {
-    let new_chat = sqlx::query_as!(
-        Chat,
-        "insert into chats (title) values ($1) returning *",
-        body.title)
-        .fetch_one(pool)
-        .await
-        .unwrap();
-
-    new_chat
-}
-
-async fn create_message(pool: &PgPool, chat_id: i64, body: &IncomeMessage) -> Message {
-    let new_message = sqlx::query_as!(
-        Message,
-        "insert into messages (chat_id, content, author_name)
-         values ($1, $2, $3) returning *", chat_id, body.content, body.author_name)
-        .fetch_one(pool)
-        .await
-        .unwrap();
-
-    new_message
-}
-
-async fn chat_exists_by_name(name: &str, pool: &PgPool) -> bool {
-    sqlx::query!("select exists(select 1 from chats where title = $1)", name)
-        .fetch_one(pool)
-        .await
-        .unwrap().exists.unwrap()
-}
-
-async fn get_chat_by_name(pool: &PgPool, chat_name: &str) -> Chat {
-    sqlx::query_as!(Chat, "select * from chats where title = $1", chat_name)
-        .fetch_one(pool)
-        .await
-        .unwrap()
+pub async fn get_messages(
+    State(app_state): State<AppState>,
+    Path(chat_name): Path<String>,
+) -> Result<Json<Vec<Message>>, AppError> {
+    let chat = get_chat_by_name(&app_state.db_pool, &chat_name).await?;
+    let messages = get_chat_messages(&app_state.db_pool, chat.id).await?;
+    Ok(Json(messages))
 }
 
 pub async fn connect_to_chat(
@@ -82,12 +52,22 @@ async fn handle_socket(
     state: AppState,
     params: ConnectToChatQuery) {
 
-    if !chat_exists_by_name(&params.chat_name, &state.db_pool).await {
-        create_chat_inner(&state.db_pool, CreateChatRequest {title: params.chat_name.clone()}).await;
+    if let Err(e) = run_socket(socket, state, params).await {
+        tracing::error!("websocket session ended with error: {e}");
+    }
+}
+
+async fn run_socket(
+    socket: WebSocket,
+    state: AppState,
+    params: ConnectToChatQuery,
+) -> anyhow::Result<()> {
+    if !chat_exists_by_name(&params.chat_name, &state.db_pool).await? {
+        create_chat_inner(&state.db_pool, CreateChatRequest { title: params.chat_name.clone() }).await?;
     }
 
     let sender = {
-        let mut lock = state.rooms.lock().unwrap();
+        let mut lock = state.rooms.lock().unwrap_or_else(|e| e.into_inner());
         lock.entry(params.chat_name.clone())
             .or_insert_with(|| broadcast::channel(100).0)
             .clone()
@@ -95,43 +75,53 @@ async fn handle_socket(
 
     let mut receiver = sender.subscribe();
 
-    let (mut ws_sender,
-        mut ws_receiver) = socket.split();
+    let (mut ws_sender, mut ws_receiver) = socket.split();
 
-    let chat = get_chat_by_name(&state.db_pool, &params.chat_name).await;
+    let chat = get_chat_by_name(&state.db_pool, &params.chat_name).await?;
 
     loop {
         tokio::select! {
             msg = ws_receiver.next() => {
                 match msg {
                     None => {
-                        tracing::info!("client disconnected");
-                        break
-                    },
+                        tracing::info!("{} disconnected", params.username);
+                        break;
+                    }
                     Some(result) => {
-                        let message = match result {
-                            Ok(message) => message,
-                            Err(_e) => break,
-                        };
-                        let text = message.to_text().unwrap().to_string();
-
-                        let mess = serde_json::from_str::<IncomeMessage>(&text).unwrap();
-
-                        sender.send(create_message(&state.db_pool, chat.id, &mess).await)
-                        .expect("Error when sending messange");
-
-                        tracing::info!("message '{}' from {} sent to chat {}", &mess.content.clone(),  params.username, chat.id);
+                        let message = result?;
+                        match message {
+                            ws::Message::Text(text) => {
+                                let mess = serde_json::from_str::<IncomeMessage>(&text)?;
+                                let saved = create_message(&state.db_pool, chat.id, &mess).await?;
+                                sender.send(saved)?;
+                                tracing::info!("message '{}' from {} sent to chat {}", mess.content, params.username, chat.id);
+                            }
+                            ws::Message::Close(_) => {
+                                tracing::info!("{} disconnected", params.username);
+                                break;
+                            }
+                            _ => {}
+                        }
                     }
                 }
             }
-             msg = receiver.recv() => {
-                  if let Ok(message) = msg {
-                      let json = serde_json::to_string(&message).unwrap();
-                      ws_sender.send(ws::Message::Text
-                        (json.into()))
-                    .await.unwrap();
-                  }
+            msg = receiver.recv() => {
+                match msg {
+                    Ok(message) => {
+                        let json = serde_json::to_string(&message)?;
+                        ws_sender.send(ws::Message::Text(json.into())).await?;
+                    }
+                    Err(broadcast::error::RecvError::Lagged(n)) => {
+                        tracing::warn!("{} lagged, missed {} messages", params.username, n);
+                    }
+                    Err(broadcast::error::RecvError::Closed) => {
+                        tracing::info!("broadcast channel for '{}' closed", params.chat_name);
+                        break;
+                    }
+                }
             }
         }
     }
+
+    Ok(())
 }

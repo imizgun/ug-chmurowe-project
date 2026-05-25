@@ -1,0 +1,27 @@
+.pop-up {
+  position: absolute;
+  padding: 15px;
+  border-radius: 12px;
+  background-color: #f3f3f3;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  pointer-events: none;
+
+  &.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .tools {
+    display: flex;
+    flex-direction: column;
+
+    .tool {
+      transition: all 0.3s ease-in-out;
+
+      &:hover {
+        background-color: #e8e8e8;
+      }
+    }
+  }
+}

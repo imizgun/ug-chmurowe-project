@@ -1,0 +1,24 @@
+<div class="chat">
+  <div class="content">
+    <div class="chat-title">
+      Chat
+    </div>
+    <div class="chat-content">
+      @for (message of messages; track message.id) {
+        <app-chat-message class="message" [ngClass]="{'left': message.author_name !== sessionStorage.getItem('name')}"
+          [content]="message.content"
+          [author]="message.author_name"
+          [id]="message.id"
+          [isLeft]="message.author_name !== sessionStorage.getItem('name')"
+          [sentAt]="message.sent_at | timeFormatPipe"
+          [chatId]="message.chat_id"
+        />
+      }
+      <br #scrollAnchor/>
+    </div>
+    <form (ngSubmit)="sendMessage()" class="send-message">
+      <input [(ngModel)]="messageText" name="message" placeholder="Write your message"/>
+      <button type="submit">Send</button>
+    </form>
+  </div>
+</div>

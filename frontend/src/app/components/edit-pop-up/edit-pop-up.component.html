@@ -1,0 +1,10 @@
+<div (clickOutside)="onClickOutSide($event)" class="pop-up" [ngClass]="{'active': isActive}">
+  <div class="tools">
+    <div class="tool" (click)="onEdit()">
+      Edit
+    </div>
+    <div class="tool" (click)="onDelete()">
+      Delete
+    </div>
+  </div>
+</div>

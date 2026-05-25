@@ -1,0 +1,28 @@
+.chat {
+  height: 90vh;
+  display: flex;
+  justify-content: center; }
+  .chat .content {
+    padding: 20px;
+    border-radius: 12px;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    flex-direction: column; }
+    .chat .content .send-message {
+      margin-top: 10px;
+      width: 100%;
+      display: flex;
+      justify-content: space-around; }
+    .chat .content .chat-title {
+      font-size: 1.5em;
+      font-weight: bold; }
+    .chat .content .chat-content {
+      border: 1px solid #c6c6c6;
+      border-radius: 12px;
+      height: 700px;
+      width: 500px;
+      overflow-y: scroll;
+      scrollbar-width: thin; }
+
+/*# sourceMappingURL=chat.component.css.map */

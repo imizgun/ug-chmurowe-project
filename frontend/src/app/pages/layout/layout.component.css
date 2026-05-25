@@ -1,0 +1,12 @@
+.layout {
+  height: 100%;
+  background-color: aliceblue;
+  display: flex;
+  justify-content: center;
+  align-items: center; }
+  .layout .content {
+    height: 100%;
+    display: flex;
+    align-items: center; }
+
+/*# sourceMappingURL=layout.component.css.map */
