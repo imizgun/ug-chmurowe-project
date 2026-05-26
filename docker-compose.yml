@@ -15,7 +15,7 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      - internal
+      - db-net
     restart: unless-stopped
 
   backend:
@@ -34,20 +34,21 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/chats/health"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 5s
     networks:
-      - internal
+      - backend-net
+      - db-net
     restart: unless-stopped
 
   frontend:
     build:
       context: ./frontend
     networks:
-      - internal
+      - frontend-net
     restart: unless-stopped
 
   nginx:
@@ -65,11 +66,16 @@ services:
       timeout: 5s
       retries: 3
     networks:
-      - internal
+      - frontend-net
+      - backend-net
     restart: unless-stopped
 
 networks:
-  internal:
+  frontend-net:
+    driver: bridge
+  backend-net:
+    driver: bridge
+  db-net:
     driver: bridge
 
 volumes:

@@ -1,4 +1,8 @@
-# Checklist — Docker Compose
+# Checklist — Docker Compose & Kubernetes
+
+---
+
+# Część 1 — Docker Compose
 
 ## Uruchomienie od zera
 
@@ -26,8 +30,6 @@ open http://localhost   # lub wpisz ręcznie w przeglądarce
 > Pierwsze uruchomienie może zająć kilka minut — backend (Rust) kompiluje się od zera.  
 > Baza danych i migracje uruchamiają się automatycznie.
 
----
-
 ## Usługi i porty
 
 | Usługa   | Obraz / Build           | Port wewnętrzny | Port zewnętrzny | Opis                          |
@@ -39,8 +41,6 @@ open http://localhost   # lub wpisz ręcznie w przeglądarce
 
 Tylko `nginx` jest dostępny z zewnątrz. Pozostałe usługi komunikują się wewnątrz sieci `internal`.
 
----
-
 ## Zasoby Docker
 
 - **Obrazy**: `postgres:16-alpine`, `nginx:alpine`, `rust:slim-bookworm` (build), `debian:bookworm-slim` (runtime), `node:20-alpine` (build), `nginx:alpine` (runtime)
@@ -49,79 +49,32 @@ Tylko `nginx` jest dostępny z zewnątrz. Pozostałe usługi komunikują się we
 - **Healthchecks**: db (pg_isready), backend (GET /health), nginx (wget /)
 - **Sekrety**: hasło do bazy jako Docker secret (`secrets/db_password.txt` → `/run/secrets/db_password`)
 
----
-
-## Komendy testowe
-
-### Sprawdzenie statusu
+## Komendy testowe (Compose)
 
 ```bash
-# Status wszystkich kontenerów
+# Status
 docker compose ps
-
-# Logi wybranej usługi
 docker compose logs backend
-docker compose logs db
-docker compose logs nginx
-```
 
-### API backendu
-
-```bash
 # Health check
-curl http://localhost/health
+curl http://localhost/api/chats/health
 
-# Utwórz nowy czat
+# Utwórz czat
 curl -X POST http://localhost/api/chats/ \
   -H "Content-Type: application/json" \
   -d '{"title": "testowy-czat"}'
 
 # Pobierz wiadomości
 curl http://localhost/api/chats/testowy-czat/messages
-```
 
-### WebSocket (wymaga wscat: npm install -g wscat)
-
-```bash
+# WebSocket (npm install -g wscat)
 wscat -c "ws://localhost/api/chats/connect?username=jan&chat_name=testowy-czat"
-# W połączeniu wpisz:
-# {"content": "Cześć!", "author_name": "jan"}
-```
 
-### Baza danych
-
-```bash
-docker compose exec db psql -U postgres -d chat -c "\dt"
+# Baza danych
 docker compose exec db psql -U postgres -d chat -c "SELECT * FROM chats;"
-docker compose exec db psql -U postgres -d chat -c "SELECT * FROM messages;"
 ```
 
----
-
-## Przykładowe wyniki
-
-### `docker compose ps`
-```
-NAME                    IMAGE             STATUS                   PORTS
-project-db-1            postgres:16-alpine   Up (healthy)
-project-backend-1       project-backend      Up (healthy)
-project-frontend-1      project-frontend     Up
-project-nginx-1         nginx:alpine         Up (healthy)          0.0.0.0:80->80/tcp
-```
-
-### `curl http://localhost/health`
-```
-HTTP/1.1 200 OK
-```
-
-### Tworzenie czatu
-```json
-{"id":1,"title":"testowy-czat","created_at":"2026-05-25T12:00:00Z"}
-```
-
----
-
-## Wymagania dodatkowe — status
+## Wymagania dodatkowe — Docker Compose
 
 | Wymaganie                        | Status |
 |----------------------------------|--------|
@@ -136,18 +89,140 @@ HTTP/1.1 200 OK
 | Multi-stage builds               | ✅     |
 | Restart policy                   | ✅     |
 
----
-
-## Zatrzymanie i czyszczenie
+## Zatrzymanie
 
 ```bash
-# Zatrzymaj usługi (dane zostają)
-docker compose down
-
-# Zatrzymaj i usuń wolumeny (reset bazy danych)
-docker compose down -v
-
-# Przebuduj konkretną usługę
-docker compose build backend
-docker compose up -d backend
+docker compose down        # dane zostają
+docker compose down -v     # reset bazy
 ```
+
+---
+
+# Część 2 — Kubernetes
+
+## Wymagania wstępne
+
+```bash
+# Utwórz klaster
+kind create cluster --name chat
+
+# Zainstaluj nginx ingress controller
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=90s
+```
+
+## Przygotowanie obrazów
+
+Zastąp `OWNER` swoją nazwą użytkownika GitHub w plikach:
+- `k8s/backend/deployment.yaml`
+- `k8s/frontend/deployment.yaml`
+
+```bash
+# Zbuduj i załaduj obrazy do klastra kind (bez registry)
+docker build -t chat-backend:local ./backend
+docker build -t chat-frontend:local ./frontend
+kind load docker-image chat-backend:local --name chat
+kind load docker-image chat-frontend:local --name chat
+```
+
+Następnie zmień image w `k8s/backend/deployment.yaml` i `k8s/frontend/deployment.yaml` na `chat-backend:local` / `chat-frontend:local` i dodaj `imagePullPolicy: Never`.
+
+## Uruchomienie klastra
+
+```bash
+# Zastosuj wszystkie manifesty
+kubectl apply -f k8s/
+
+# Sprawdź status podów (poczekaj aż wszystkie Running)
+kubectl get pods -w
+
+# Sprawdź ingress
+kubectl get ingress
+```
+
+## Zasoby Kubernetes
+
+| Zasób                   | Nazwa           | Opis                                    |
+|-------------------------|-----------------|-----------------------------------------|
+| Deployment              | postgres        | Baza danych PostgreSQL                  |
+| Deployment              | backend         | Rust/Axum API                           |
+| Deployment              | frontend        | Angular SPA                             |
+| Service (ClusterIP)     | postgres        | Wewnętrzny dostęp do DB na port 5432    |
+| Service (ClusterIP)     | backend         | Wewnętrzny dostęp do API na port 3000   |
+| Service (ClusterIP)     | frontend        | Wewnętrzny dostęp do frontu na port 80  |
+| PersistentVolumeClaim   | postgres-pvc    | Trwały dysk 1Gi dla danych PostgreSQL   |
+| ConfigMap               | app-config      | Zmienne środowiskowe (user, db, host)   |
+| Secret                  | app-secrets     | Hasło do bazy (base64)                  |
+| Ingress                 | app-ingress     | Routing: /api → backend, / → frontend  |
+
+## Komendy kubectl
+
+```bash
+# Status podów i deploymentów
+kubectl get pods
+kubectl get deployments
+kubectl get services
+kubectl get ingress
+kubectl get pvc
+
+# Logi
+kubectl logs deployment/backend
+kubectl logs deployment/postgres
+
+# Exec do kontenera
+kubectl exec -it deployment/postgres -- psql -U postgres -d chat
+
+# Opisz zasób (debug)
+kubectl describe pod <nazwa-poda>
+kubectl describe ingress app-ingress
+```
+
+## Przykładowe wyniki
+
+### `kubectl get pods`
+```
+NAME                        READY   STATUS    RESTARTS   AGE
+backend-7d6b9f8c4-xk2p9     1/1     Running   0          2m
+frontend-5c8d4b7f6-mn3q1    1/1     Running   0          2m
+postgres-6f9c5d8b7-pw4r2    1/1     Running   0          3m
+```
+
+### `kubectl get ingress`
+```
+NAME          CLASS   HOSTS   ADDRESS     PORTS   AGE
+app-ingress   nginx   *       localhost   80      2m
+```
+
+## CI/CD — GitHub Actions
+
+Pipeline uruchamia się przy każdym push na `master`:
+1. Waliduje manifesty Kubernetes (`kubeval`)
+2. Łączy się przez SSH z maszyną hostującą klaster
+3. Robi `git pull`, buduje obrazy lokalnie
+4. Ładuje obrazy do klastra kind (`kind load docker-image`)
+5. Aplikuje manifesty i czeka na rollout
+
+**Wymagane sekrety w repozytorium GitHub:**
+- `SSH_HOST` — adres IP serwera
+- `SSH_USER` — nazwa użytkownika
+- `SSH_PRIVATE_KEY` — prywatny klucz SSH
+- `SSH_PORT` — port SSH (zazwyczaj 22)
+
+Link do ostatniego workflow: <https://github.com/OWNER/ug-chmurowe-project/actions>
+
+## Wymagania dodatkowe — Kubernetes
+
+| Wymaganie                        | Status |
+|----------------------------------|--------|
+| Manifesty Deployment/Service     | ✅     |
+| PersistentVolumeClaim (postgres) | ✅     |
+| Ingress (nginx)                  | ✅     |
+| Liveness i Readiness probes      | ✅     |
+| Resource requests i limits       | ✅     |
+| securityContext                  | ✅     |
+| Secret (hasło do DB jako plik)   | ✅     |
+| ConfigMap                        | ✅     |
+| CI/CD — GitHub Actions           | ✅     |
