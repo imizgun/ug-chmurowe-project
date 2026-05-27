@@ -30,14 +30,14 @@ spec:
               readOnly: true
           readinessProbe:
             httpGet:
-              path: /api/chats/health
+              path: /api/health
               port: 3000
             initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 5
           livenessProbe:
             httpGet:
-              path: /api/chats/health
+              path: /api/health
               port: 3000
             initialDelaySeconds: 15
             periodSeconds: 10

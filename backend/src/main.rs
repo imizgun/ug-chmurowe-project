@@ -36,8 +36,8 @@ async fn main() {
         .allow_headers(tower_http::cors::Any);
 
     let app = Router::new()
+        .route("/api/health", get(health_check_handler))
         .nest("/api/chats", Router::new()
-            .route("/health", get(health_check_handler))
             .route("/", post(handlers::create_chat))
             .route("/connect", get(handlers::connect_to_chat))
             .route("/{name}/messages", get(handlers::get_messages))

@@ -57,7 +57,7 @@ docker compose ps
 docker compose logs backend
 
 # Health check
-curl http://localhost/api/chats/health
+curl http://localhost/api/health
 
 # Utwórz czat
 curl -X POST http://localhost/api/chats/ \
