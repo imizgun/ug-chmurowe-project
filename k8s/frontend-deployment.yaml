@@ -14,9 +14,10 @@ spec:
       labels:
         io.kompose.service: frontend
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: frontend
-          image: frontend:latest
+          image: chat-frontend:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 80
@@ -41,7 +42,4 @@ spec:
               memory: "64Mi"
           securityContext:
             allowPrivilegeEscalation: false
-            capabilities:
-              drop: [ALL]
-              add: [NET_BIND_SERVICE]
       restartPolicy: Always

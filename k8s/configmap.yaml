@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  POSTGRES_DB: chat
+  POSTGRES_HOST: db
+  POSTGRES_USER: postgres
+  POSTGRES_PORT: "5432"
+  RUST_LOG: info
+  ALLOWED_ORIGIN: http://localhost

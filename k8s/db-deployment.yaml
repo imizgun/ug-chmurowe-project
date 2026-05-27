@@ -16,14 +16,14 @@ spec:
       labels:
         io.kompose.service: db
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: db
           image: postgres:16-alpine
+          envFrom:
+            - configMapRef:
+                name: app-config
           env:
-            - name: POSTGRES_DB
-              value: chat
-            - name: POSTGRES_USER
-              value: postgres
             - name: POSTGRES_PASSWORD_FILE
               value: /run/secrets/db_password
           ports:
@@ -55,9 +55,6 @@ spec:
               cpu: "500m"
               memory: "512Mi"
           securityContext:
-            runAsUser: 999
-            runAsGroup: 999
-            runAsNonRoot: true
             allowPrivilegeEscalation: false
       restartPolicy: Always
       volumes:

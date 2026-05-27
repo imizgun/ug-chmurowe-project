@@ -5,40 +5,33 @@ on:
     branches: [master]
 
 jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
+  validate:
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate k8s manifests
-        run: |
-          curl -sLO https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz
-          tar xf kubeval-linux-amd64.tar.gz
-          ./kubeval --ignore-missing-schemas k8s/**/*.yaml k8s/*.yaml
+      - name: Validate Kubernetes manifests
+        run: kubectl apply --dry-run=client -f k8s/
 
   deploy:
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: self-hosted
+    needs: validate
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          script: |
-            cd ~/ug-chmurowe-project
-            git pull origin master
+      - uses: actions/checkout@v4
 
-            docker build -t chat-backend:latest ./backend
-            docker build -t chat-frontend:latest ./frontend
+      - name: Build images
+        run: |
+          docker build -t chat-backend:latest ./backend
+          docker build -t chat-frontend:latest ./frontend
 
-            kind load docker-image chat-backend:latest --name chat
-            kind load docker-image chat-frontend:latest --name chat
+      - name: Load images into kind
+        run: |
+          kind load docker-image chat-backend:latest --name chat
+          kind load docker-image chat-frontend:latest --name chat
 
-            kubectl apply -f k8s/
-            kubectl rollout restart deployment/backend deployment/frontend
-            kubectl rollout status deployment/backend  --timeout=120s
-            kubectl rollout status deployment/frontend --timeout=120s
+      - name: Apply manifests and wait for rollout
+        run: |
+          kubectl apply -f k8s/
+          kubectl rollout restart deployment/backend deployment/frontend
+          kubectl rollout status deployment/backend  --timeout=120s
+          kubectl rollout status deployment/frontend --timeout=120s

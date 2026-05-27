@@ -14,23 +14,14 @@ spec:
       labels:
         io.kompose.service: backend
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: backend
-          image: backend:latest
+          image: chat-backend:latest
           imagePullPolicy: Never
-          env:
-            - name: ALLOWED_ORIGIN
-              value: http://localhost
-            - name: POSTGRES_DB
-              value: chat
-            - name: POSTGRES_HOST
-              value: db
-            - name: POSTGRES_PORT
-              value: "5432"
-            - name: POSTGRES_USER
-              value: postgres
-            - name: RUST_LOG
-              value: info
+          envFrom:
+            - configMapRef:
+                name: app-config
           ports:
             - containerPort: 3000
           volumeMounts:

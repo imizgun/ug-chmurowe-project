@@ -103,8 +103,8 @@ docker compose down -v     # reset bazy
 ## Wymagania wstępne
 
 ```bash
-# Utwórz klaster
-kind create cluster --name chat
+# Utwórz klaster z mapowaniem portu 80
+kind create cluster --name chat --config kind-config.yaml
 
 # Zainstaluj nginx ingress controller
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
@@ -116,24 +116,19 @@ kubectl wait --namespace ingress-nginx \
 
 ## Przygotowanie obrazów
 
-Zastąp `OWNER` swoją nazwą użytkownika GitHub w plikach:
-- `k8s/backend/deployment.yaml`
-- `k8s/frontend/deployment.yaml`
-
 ```bash
-# Zbuduj i załaduj obrazy do klastra kind (bez registry)
-docker build -t chat-backend:local ./backend
-docker build -t chat-frontend:local ./frontend
-kind load docker-image chat-backend:local --name chat
-kind load docker-image chat-frontend:local --name chat
+# Zbuduj i załaduj obrazy do klastra kind
+docker build -t chat-backend:latest ./backend
+docker build -t chat-frontend:latest ./frontend
+kind load docker-image chat-backend:latest --name chat
+kind load docker-image chat-frontend:latest --name chat
 ```
-
-Następnie zmień image w `k8s/backend/deployment.yaml` i `k8s/frontend/deployment.yaml` na `chat-backend:local` / `chat-frontend:local` i dodaj `imagePullPolicy: Never`.
 
 ## Uruchomienie klastra
 
 ```bash
 # Zastosuj wszystkie manifesty
+kubectl apply -f k8s/ --dry-run=client   # walidacja
 kubectl apply -f k8s/
 
 # Sprawdź status podów (poczekaj aż wszystkie Running)
@@ -155,7 +150,7 @@ kubectl get ingress
 | Service (ClusterIP)     | frontend        | Wewnętrzny dostęp do frontu na port 80  |
 | PersistentVolumeClaim   | postgres-pvc    | Trwały dysk 1Gi dla danych PostgreSQL   |
 | ConfigMap               | app-config      | Zmienne środowiskowe (user, db, host)   |
-| Secret                  | app-secrets     | Hasło do bazy (base64)                  |
+| Secret                  | db-password     | Hasło do bazy (base64)                  |
 | Ingress                 | app-ingress     | Routing: /api → backend, / → frontend  |
 
 ## Komendy kubectl
@@ -198,20 +193,22 @@ app-ingress   nginx   *       localhost   80      2m
 
 ## CI/CD — GitHub Actions
 
-Pipeline uruchamia się przy każdym push na `master`:
-1. Waliduje manifesty Kubernetes (`kubeval`)
-2. Łączy się przez SSH z maszyną hostującą klaster
-3. Robi `git pull`, buduje obrazy lokalnie
-4. Ładuje obrazy do klastra kind (`kind load docker-image`)
-5. Aplikuje manifesty i czeka na rollout
+Pipeline uruchamia się przy każdym push na `master` na **self-hosted runnerze** (działa lokalnie na tej samej maszynie co klaster kind):
 
-**Wymagane sekrety w repozytorium GitHub:**
-- `SSH_HOST` — adres IP serwera
-- `SSH_USER` — nazwa użytkownika
-- `SSH_PRIVATE_KEY` — prywatny klucz SSH
-- `SSH_PORT` — port SSH (zazwyczaj 22)
+1. Waliduje manifesty (`kubectl apply --dry-run=client -f k8s/`)
+2. Buduje obrazy Docker lokalnie
+3. Ładuje obrazy do klastra kind (`kind load docker-image`)
+4. Aplikuje manifesty i czeka na rollout
 
-Link do ostatniego workflow: <https://github.com/OWNER/ug-chmurowe-project/actions>
+**Uruchomienie runnera (jednorazowo):**
+```bash
+cd actions-runner/actions-runner
+./config.sh --url https://github.com/imizgun/ug-chmurowe-project --token <TOKEN>
+./run.sh
+```
+Token jednorazowy: Settings → Actions → Runners → New self-hosted runner.
+
+Link do ostatniego workflow: <https://github.com/imizgun/ug-chmurowe-project/actions>
 
 ## Wymagania dodatkowe — Kubernetes
 
