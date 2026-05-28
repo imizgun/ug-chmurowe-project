@@ -17,15 +17,15 @@ k8s-ingress:
 	kubectl rollout status deployment/ingress-nginx-controller -n ingress-nginx --timeout=90s
 
 k8s-build:
-	docker build -t backend:latest ./backend
-	docker build -t frontend:latest ./frontend
+	docker build -t chat-backend:latest ./backend
+	docker build -t chat-frontend:latest ./frontend
 
 k8s-load:
-	kind load docker-image backend:latest --name chat
-	kind load docker-image frontend:latest --name chat
+	kind load docker-image chat-backend:latest --name chat
+	kind load docker-image chat-frontend:latest --name chat
 
 k8s-apply:
-	kubectl apply -f kuber/
+	kubectl apply -f k8s/
 
 k8s-status:
 	kubectl get pods
