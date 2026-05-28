@@ -17,7 +17,7 @@
       <br #scrollAnchor/>
     </div>
     <form (ngSubmit)="sendMessage()" class="send-message">
-      <input [(ngModel)]="messageText" name="message" placeholder="Write your message"/>
+      <input [(ngModel)]="messageText" name="message" placeholder="Write your message" autocomplete="off"/>
       <button type="submit">Send</button>
     </form>
   </div>
