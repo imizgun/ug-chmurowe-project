@@ -25,11 +25,12 @@ k8s-load:
 	kind load docker-image chat-frontend:latest --name chat
 
 k8s-apply:
+	kubectl apply -f k8s/namespace.yaml
 	kubectl apply -f k8s/
 
 k8s-status:
-	kubectl get pods
-	kubectl get ingress
+	kubectl get pods -n chat
+	kubectl get ingress -n chat
 
 k8s-down:
 	kind delete cluster --name chat
