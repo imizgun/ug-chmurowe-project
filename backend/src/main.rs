@@ -12,6 +12,7 @@ use axum::{
 };
 use axum::http::{HeaderValue, Method, StatusCode};
 use axum::routing::post;
+use tokio::signal::unix::{signal, SignalKind};
 use tower_http::cors::CorsLayer;
 use crate::app_state::AppState;
 
@@ -54,7 +55,13 @@ async fn main() {
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
 
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app)
+        .with_graceful_shutdown(async {
+            signal(SignalKind::terminate()).unwrap().recv().await;
+            tracing::info!("SIGTERM received, shutting down gracefully");
+        })
+        .await
+        .unwrap();
 }
 
 async fn health_check_handler() -> StatusCode {
