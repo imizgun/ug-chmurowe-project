@@ -102,6 +102,8 @@ docker compose down -v     # reset bazy
 
 ## Wymagania wstępne
 
+Klaster musi być uruchomiony **przed** pipeline CI/CD. To jednorazowa konfiguracja środowiska.
+
 ```bash
 # Utwórz klaster z mapowaniem portu 80
 kind create cluster --name chat --config kind-config.yaml
@@ -113,6 +115,8 @@ kubectl wait --namespace ingress-nginx \
   --selector=app.kubernetes.io/component=controller \
   --timeout=90s
 ```
+
+Lub jedną komendą: `make k8s-cluster k8s-ingress`
 
 ## Przygotowanie obrazów
 
