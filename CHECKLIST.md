@@ -74,21 +74,6 @@ wscat -c "ws://localhost/api/chats/connect?username=jan&chat_name=testowy-czat"
 docker compose exec db psql -U postgres -d chat -c "SELECT * FROM chats;"
 ```
 
-## Wymagania dodatkowe — Docker Compose
-
-| Wymaganie                        | Status |
-|----------------------------------|--------|
-| Dockerfile dla każdej usługi     | ✅     |
-| Docker Compose                   | ✅     |
-| Sieć wewnętrzna (bridge)         | ✅     |
-| Trwały wolumen dla bazy danych   | ✅     |
-| Healthchecks                     | ✅     |
-| Reverse proxy (nginx)            | ✅     |
-| Docker secrets (hasło do DB)     | ✅     |
-| WebSocket przez proxy            | ✅     |
-| Multi-stage builds               | ✅     |
-| Restart policy                   | ✅     |
-
 ## Zatrzymanie
 
 ```bash
