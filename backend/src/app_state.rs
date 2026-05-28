@@ -7,5 +7,6 @@ use crate::core::message::Message;
 #[derive(Clone)]
 pub struct AppState {
     pub db_pool: PgPool,
-    pub rooms: Arc<Mutex<HashMap<String, Sender<Message>>>>
+    pub rooms: Arc<Mutex<HashMap<String, Sender<Message>>>>,
+    pub redis: redis::aio::MultiplexedConnection,
 }

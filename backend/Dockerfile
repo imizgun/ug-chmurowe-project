@@ -16,8 +16,11 @@ RUN cargo build --release --bin devops-project
 
 FROM debian:bookworm-slim AS runtime
 RUN apt-get update && apt-get install -y ca-certificates curl && rm -rf /var/lib/apt/lists/*
+RUN useradd -u 1000 -m appuser
 WORKDIR /app
 COPY --from=builder /app/target/release/devops-project .
 COPY --from=builder /app/migrations ./migrations
+RUN chown -R appuser:appuser /app
+USER appuser
 EXPOSE 3000
 CMD ["./devops-project"]

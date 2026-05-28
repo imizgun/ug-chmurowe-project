@@ -22,9 +22,16 @@ async fn main() {
 
     let pool = db::db::create_db_pool().await;
 
+    let redis_url = std::env::var("REDIS_URL")
+        .unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+    let redis_client = redis::Client::open(redis_url).expect("invalid redis url");
+    let redis_conn = redis_client.get_multiplexed_tokio_connection().await
+        .expect("failed to connect to redis");
+
     let state = AppState {
         db_pool: pool,
         rooms: Arc::new(Mutex::new(HashMap::new())),
+        redis: redis_conn,
     };
 
     let allowed_origin = std::env::var("ALLOWED_ORIGIN")

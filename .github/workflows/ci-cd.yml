@@ -12,8 +12,8 @@ jobs:
 
       - name: Build images
         run: |
-          docker build -t chat-backend:latest ./backend
-          docker build -t chat-frontend:latest ./frontend
+          docker build -t chat-backend:latest -t chat-backend:${{ github.sha }} ./backend
+          docker build -t chat-frontend:latest -t chat-frontend:${{ github.sha }} ./frontend
 
       - name: Load images into kind
         run: |
@@ -24,6 +24,6 @@ jobs:
         run: |
           kubectl apply --dry-run=client -f k8s/
           kubectl apply -f k8s/
-          kubectl rollout restart deployment/backend deployment/frontend
-          kubectl rollout status deployment/backend  --timeout=120s
-          kubectl rollout status deployment/frontend --timeout=120s
+          kubectl rollout restart deployment/backend deployment/frontend -n chat
+          kubectl rollout status deployment/backend --timeout=120s -n chat
+          kubectl rollout status deployment/frontend --timeout=120s -n chat

@@ -2,6 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: app-config
+  namespace: chat
 data:
   POSTGRES_DB: chat
   POSTGRES_HOST: db
@@ -9,3 +10,4 @@ data:
   POSTGRES_PORT: "5432"
   RUST_LOG: info
   ALLOWED_ORIGIN: http://localhost
+  REDIS_URL: redis://redis:6379

@@ -17,6 +17,19 @@ services:
     networks:
       - db-net
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   backend:
     build:
@@ -28,10 +41,13 @@ services:
       POSTGRES_PORT: "5432"
       ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-http://localhost}
       RUST_LOG: info
+      REDIS_URL: redis://redis:6379
     secrets:
       - db_password
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
@@ -43,6 +59,45 @@ services:
       - backend-net
       - db-net
     restart: unless-stopped
+    stop_grace_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - backend-net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 64M
+        reservations:
+          cpus: '0.05'
+          memory: 32M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
 
   frontend:
     build:
@@ -50,6 +105,19 @@ services:
     networks:
       - frontend-net
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 64M
+        reservations:
+          cpus: '0.05'
+          memory: 32M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
 
   nginx:
     image: nginx:alpine
@@ -69,6 +137,19 @@ services:
       - frontend-net
       - backend-net
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 32M
+        reservations:
+          cpus: '0.05'
+          memory: 16M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
 networks:
   frontend-net:

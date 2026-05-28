@@ -74,6 +74,7 @@ async fn run_socket(
     };
 
     let mut receiver = sender.subscribe();
+    let mut redis_conn = state.redis.clone();
 
     let (mut ws_sender, mut ws_receiver) = socket.split();
 
@@ -93,7 +94,12 @@ async fn run_socket(
                             ws::Message::Text(text) => {
                                 let mess = serde_json::from_str::<IncomeMessage>(&text)?;
                                 let saved = create_message(&state.db_pool, chat.id, &mess).await?;
-                                sender.send(saved)?;
+                                sender.send(saved.clone())?;
+                                let _: redis::Value = redis::cmd("PUBLISH")
+                                    .arg(format!("chat:{}", chat.id))
+                                    .arg(serde_json::to_string(&saved)?)
+                                    .query_async(&mut redis_conn)
+                                    .await?;
                                 tracing::info!("message '{}' from {} sent to chat {}", mess.content, params.username, chat.id);
                             }
                             ws::Message::Close(_) => {

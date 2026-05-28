@@ -4,17 +4,27 @@ metadata:
   labels:
     io.kompose.service: backend
   name: backend
+  namespace: chat
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       io.kompose.service: backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   template:
     metadata:
       labels:
         io.kompose.service: backend
     spec:
       automountServiceAccountToken: false
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z db 5432; do echo "waiting for db..."; sleep 2; done']
       containers:
         - name: backend
           image: chat-backend:latest
