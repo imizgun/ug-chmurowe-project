@@ -1,5 +1,5 @@
 .PHONY: up down build logs \
-        k8s-up k8s-down k8s-build k8s-load k8s-apply k8s-status k8s-cluster k8s-ingress
+        k8s-up k8s-down k8s-build k8s-load k8s-apply k8s-status k8s-cluster k8s-ingress k8s-clean-default
 
 up:
 	docker compose up --build -d
@@ -31,6 +31,12 @@ k8s-apply:
 k8s-status:
 	kubectl get pods -n chat
 	kubectl get ingress -n chat
+
+k8s-clean-default:
+	kubectl delete ingress app-ingress -n default 2>/dev/null || true
+	kubectl delete all -l io.kompose.service -n default 2>/dev/null || true
+	kubectl delete configmap app-config -n default 2>/dev/null || true
+	kubectl delete secret db-password -n default 2>/dev/null || true
 
 k8s-down:
 	kind delete cluster --name chat
